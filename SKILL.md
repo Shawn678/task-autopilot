@@ -1,6 +1,6 @@
 ---
 name: shipping-a-task
-description: Use when implementation is complete and passing self-checks, and you need to hand off a finished task through manual testing, PR, merge, and cleanup - covers auto-merging via gh CLI (including conflict resolution) and post-merge board/CLAUDE.md updates, which finishing-a-development-branch does not handle
+description: Use when implementation is complete and passing self-checks, and a finished task needs to go through manual testing, PR creation, merge, and cleanup all the way to done - especially when the user wants the merge itself handled (not just the PR), including situations with merge conflicts or a GitHub Projects board/CLAUDE.md to update afterward
 ---
 
 # Shipping a Task
