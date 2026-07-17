@@ -18,6 +18,32 @@ This skill is a global Claude Code skill — it needs to live at
 `C:\Users\<you>\.claude\skills\shipping-a-task\`) so Claude Code picks it
 up in every project.
 
+### 0. Prerequisite skills
+
+`SKILL.md` isn't fully self-contained — it explicitly hands off to a few
+other skills instead of duplicating their logic. Claude Code does **not**
+warn you if these are missing; it will just try to follow a reference to
+a skill that doesn't exist, which can produce confused or improvised
+behavior instead of a clear error. Install these first:
+
+- **superpowers plugin** (provides `using-git-worktrees`,
+  `finishing-a-development-branch`, `requesting-code-review`) — install
+  via the Claude Code plugin marketplace:
+  ```
+  /plugin marketplace add claude-plugins-official
+  /plugin install superpowers
+  ```
+  (Or whatever source you originally installed superpowers from, if
+  different — check with `/plugin list` on your existing machine before
+  moving to the new one.)
+- **`run` skill** — this one isn't part of any plugin bundle; it's a
+  standalone skill some Claude Code environments ship with built in.
+  Check whether it's already available on the new device (look for it in
+  the available-skills listing, or ask Claude "do you have a `run`
+  skill?"). If it's missing, Step 2 (manual-test handoff) will fail to
+  resolve — the reader will need to do the project-type detection
+  manually and adapt that step by hand until it's added.
+
 ### 1. Install GitHub CLI (`gh`)
 
 The skill drives PR creation, merging, and GitHub Projects updates
