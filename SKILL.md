@@ -45,10 +45,30 @@ Then **stop and wait**. Do not proceed until the user responds.
 
 ### Step 3: User Confirmation
 
-- If the user reports a problem: fix it, then return to Step 1.
 - If the user confirms it's good: proceed to Step 4.
+- If the user reports a problem:
+  - Fix it on the same branch.
+  - Judge for yourself, based on what actually changed, whether the fix
+    warrants re-running the full Step 1 self-check and/or looping back
+    through Step 2 for another manual-test handoff, or whether it's narrow
+    enough to confirm inline with the user and move on. There is no fixed
+    rule here — use your judgment on the specific diff.
+  - If a PR already exists for this task (see Step 4), push the fix to the
+    same branch to update that PR. Do not open a second PR for the same
+    task — see the one-PR-per-task rule in Step 4.
 
 ### Step 4: Open PR
+
+**One PR per task/branch.** A single task/worktree corresponds to exactly
+one PR for its entire lifecycle, whether the PR is opened before or after
+a round of fixes. If a PR already exists for this branch (check with
+`gh pr view` or `gh pr list --head <branch>`), do not run `gh pr create`
+again — just `git push` the new commits, which updates the existing PR
+automatically. Only open a genuinely new PR when the prior one for this
+task has already been merged and a *different, later* issue is found
+(that's a new task, not a continuation).
+
+If no PR exists yet for this branch:
 
 ```bash
 gh pr create --title "<title>" --body "<summary>"
@@ -58,7 +78,14 @@ Base this on the same PR-creation approach as superpowers:finishing-a-developmen
 
 ### Step 5: Merge
 
-Merge method is **always `--merge` (merge commit)** — never squash unless the user explicitly says otherwise for this run.
+**Determine the merge method from the project itself** — check the
+repo's branch protection rules (`gh api repos/{owner}/{repo}` or the
+GitHub UI settings if accessible), an existing CONTRIBUTING doc, or the
+pattern of recent merge commits on this repo (`git log --merges`), and
+use whichever of merge-commit/squash/rebase the project actually expects.
+Do not default to any one method — a project that only allows squash
+merges will reject `--merge` outright. If genuinely no signal exists
+either way, ask the user once rather than guessing.
 
 **Before running any merge command, check for conflicts:**
 
@@ -69,42 +96,41 @@ git merge-tree $(git merge-base HEAD origin/main) HEAD origin/main
 
 **If no conflicts:** proceed to the confirmation gate below.
 
-**If conflicts exist, classify every conflicting hunk into exactly one tier:**
+**If conflicts exist, look at every conflicting hunk and judge whether it's
+a mechanical difference (formatting, import order, lockfile regeneration —
+no ambiguity about intent) or a genuine logic divergence (both sides
+changed the same behavior with different intent, and you cannot tell
+which matches what the user actually wants).**
 
-**Tier 1 — Mechanical.** Import ordering, formatting/whitespace, lockfile
-regeneration, or other conflicts with no semantic ambiguity about intent.
-- Resolve it yourself.
-- Label it explicitly: "Mechanical conflict in `<file>` — resolved automatically."
-- Show the resulting diff to the user.
+- **Mechanical:** resolve it yourself, label it explicitly ("Mechanical
+  conflict in `<file>` — resolved automatically"), and show the resulting
+  diff to the user.
+- **Logic divergence — this is a hard rule, not a judgment call:** do
+  NOT resolve it and do NOT guess and proceed, no matter how standard or
+  defensible one resolution seems. List every such divergence point, one
+  at a time, showing the pre-conflict content, what the base/main side
+  changed it to, what this branch changed it to, and why you can't tell
+  which is correct. Ask the user how to resolve each point before moving
+  to the next. Only after every point has an explicit user answer, apply
+  the combined resolution.
+- **If you're not sure which category a hunk falls into, treat it as
+  logic divergence.** The cost of asking unnecessarily is small; the cost
+  of silently merging incompatible intent is not.
 
-**Tier 2 — Logic divergence.** Both sides changed the same behavior with
-different intent, and you cannot determine which one (or what combination)
-matches what the user actually wants.
-- **Do NOT resolve this yourself. Do NOT guess and proceed.**
-- List every such divergence point, one at a time, each showing: the
-  pre-conflict content, what the base/main side changed it to, what this
-  branch changed it to, and why you can't tell which is correct.
-- Ask the user how to resolve each point before moving to the next.
-- Only after every Tier 2 point has an explicit user answer, apply the
-  combined resolution.
-
-**Never silently pick one side of a Tier 2 conflict, even when a resolution
-seems technically standard or defensible.** "This is the conventional way
-to do it" is not the same as "this is what the user wants" — resolving
-first and informing the user afterward still means the merge already
-happened on your judgment call alone. Ask before merging, not after.
-
-**Never silently pick one side of a Tier 2 conflict.** If uncertain whether
-something is Tier 1 or Tier 2, treat it as Tier 2.
+**"This is the conventional way to do it" is not the same as "this is
+what the user wants."** Resolving a logic divergence first and informing
+the user afterward still means the merge already happened on your
+judgment call alone. Ask before merging, not after.
 
 **Final confirmation gate (required for every merge, conflict or not):**
 
-State clearly what is about to happen ("This will merge `<branch>` into
-`<base>` via merge commit — this cannot be undone"), then require the user
-to type the literal word `merge` before running:
+State clearly what is about to happen, naming the actual merge method
+determined above (e.g. "This will merge `<branch>` into `<base>` via
+<merge commit/squash/rebase> — this cannot be undone"), then require the
+user to type the literal word `merge` before running:
 
 ```bash
-gh pr merge <pr-number> --merge
+gh pr merge <pr-number> --merge    # or --squash / --rebase, matching the method determined above
 ```
 
 Do not accept "yes", "go ahead", "looks good", "ship it", or any other
@@ -123,28 +149,45 @@ safe to merge yet.
 
 ### Step 6: Update the Board
 
-Every run, ask: "Update this task's GitHub Projects item to Done (or your
-completion column)?"
+**First check whether this project actually uses a GitHub Projects
+board at all** (e.g. `gh project list` scoped to the repo/owner, or a
+board already referenced earlier in this conversation). If there's no
+sign this project tracks work in a Projects board, skip this step
+silently — don't ask about a system the project doesn't use.
+
+If a board is in use, ask: "Update this task's GitHub Projects item to
+Done (or your completion column)?"
 
 - If yes: find the project item for this issue/PR and update its status
   field via `gh project item-edit` (or the GraphQL API if item-edit can't
   address the field directly).
-- If no board/project is configured, or the item can't be found: say so
-  plainly and move on. Do not fail the overall flow over this.
+- If the item can't be found despite the board existing: say so plainly
+  and move on. Do not fail the overall flow over this.
 
-Ask this every time, even when the update looks obvious or unambiguous —
+**Ask at most once per conversation/session.** If this exact question has
+already been asked and answered earlier in this session (e.g. an earlier
+shipping-a-task run in the same conversation), reuse that answer instead
+of asking again — unless the user says the preference changed. Within a
+single run, still ask every time the board's existence is confirmed;
 "this task is clearly done, so I'll just update it" is exactly the
 shortcut that skips the user's chance to say no.
 
 ### Step 7: Update CLAUDE.md
 
-Every run, ask: "Remove/update the in-progress entry for this task in
-CLAUDE.md?"
+**First check whether CLAUDE.md exists and has anything resembling an
+in-progress/task-tracking section** (e.g. an "In Progress" heading or
+similar). If there's no CLAUDE.md, or it exists but has no such section,
+skip this step silently — don't ask about a convention this project
+isn't using.
 
-- If yes and a matching section exists (e.g. an "In Progress" or similar
-  heading referencing this task): edit it out or mark it done.
-- If no CLAUDE.md exists, or no matching section is found: say so plainly
-  and move on.
+If a matching section exists, ask: "Remove/update the in-progress entry
+for this task in CLAUDE.md?"
+
+- If yes: edit it out or mark it done.
+
+**Ask at most once per conversation/session** under the same reuse rule
+as Step 6 — if the user already answered this question earlier in the
+same session, don't ask again unless they indicate the preference changed.
 
 ### Step 8: Clean Up
 
@@ -163,20 +206,20 @@ a harness-owned workspace.
 |---|---|---|
 | 1 | Self-check (lint/test/review) | Must pass before Step 2 |
 | 2 | Hand off for manual test | Wait for user response |
-| 3 | User confirms | Problem → back to Step 1 |
-| 4 | Open PR | — |
-| 5 | Merge (conflict-tiered) | Literal `merge` keyword required |
-| 6 | Board update | Ask every time |
-| 7 | CLAUDE.md update | Ask every time |
+| 3 | User confirms, or reports a problem to fix (judge re-check scope yourself) | Problem → fix, judge whether to redo 1/2 |
+| 4 | Open PR — only if one doesn't already exist for this branch | One PR per task, ever |
+| 5 | Merge (method determined from project; conflicts judged mechanical vs. logic-divergence) | Literal `merge` keyword required; logic divergence always asks |
+| 6 | Board update | Only if project uses a board; ask once per session |
+| 7 | CLAUDE.md update | Only if project has a tracking section; ask once per session |
 | 8 | Cleanup | Provenance check first |
 
 ## Common Mistakes
 
 **Treating a logic-divergence conflict as mechanical**
 - Problem: silently merges two incompatible intents, corrupting behavior
-- Fix: when in doubt, always treat as Tier 2 and ask
+- Fix: when unsure which category a hunk falls into, always treat it as logic divergence and ask
 
-**Resolving a Tier 2 conflict "the standard way" and informing the user afterward**
+**Resolving a logic-divergence conflict "the standard way" and informing the user afterward**
 - Problem: the merge already happened on your judgment call before the user had a chance to object — informing after the fact doesn't undo it
 - Fix: list every divergence point and get the user's answer *before* applying any resolution or merging
 
@@ -184,9 +227,21 @@ a harness-owned workspace.
 - Problem: merge is irreversible; casual or pre-authorized confirmation isn't a deliberate act taken at the actual moment of merging
 - Fix: require the literal keyword `merge`, typed at the confirmation gate itself, every time
 
-**Skipping the board/CLAUDE.md questions because "this repo probably doesn't have one" or "this update is obviously correct"**
-- Problem: user loses track of what's actually been updated
-- Fix: always ask, every run, regardless of assumption or how unambiguous it seems
+**Defaulting to `--merge` without checking what the project actually accepts**
+- Problem: a repo configured for squash-only merges will reject a plain `--merge`, and forcing the "usual" method may not match the project's actual policy
+- Fix: check branch protection / recent merge history / CONTRIBUTING docs first; ask if genuinely no signal exists
+
+**Opening a second PR for the same task after a post-test fix**
+- Problem: fragments the task's history across multiple PRs and confuses reviewers/board tracking about which PR is authoritative
+- Fix: check whether a PR already exists for this branch before running `gh pr create`; push fixes to the same branch instead
+
+**Asking the board/CLAUDE.md questions when the project doesn't use either**
+- Problem: wastes the user's attention on a system that isn't in use
+- Fix: check for an actual board / tracking section first; skip silently if neither exists
+
+**Asking the board/CLAUDE.md questions again after the user already answered this session**
+- Problem: repeats a question the user already settled, reads as not listening
+- Fix: reuse the earlier answer within the same conversation unless the user says it changed
 
 **Cleaning up a worktree the skill didn't create**
 - Problem: destroys a harness-managed or user-managed workspace
@@ -197,7 +252,10 @@ a harness-owned workspace.
 - About to run `gh pr merge` without the user having typed the literal word `merge` at this point in the conversation
 - About to treat an earlier blanket instruction ("just merge when ready") as satisfying the merge keyword gate
 - About to resolve a conflict where you're not fully sure both intents are compatible, even if your resolution feels like "the standard/correct way"
-- About to skip the board or CLAUDE.md question because "it's probably not set up" or "it's obviously supposed to be updated"
+- About to run `gh pr create` when a PR already exists for this branch
+- About to assume the merge method instead of checking what the project actually accepts
+- About to ask the board/CLAUDE.md question when neither is actually in use on this project
+- About to re-ask a board/CLAUDE.md question the user already answered earlier this session
 - About to remove a worktree you didn't verify the provenance of
 
 **All of these mean: stop, ask the user, do not proceed on assumption.**
