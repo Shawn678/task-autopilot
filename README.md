@@ -138,6 +138,71 @@ any conflict that isn't purely mechanical, and requiring you to type the
 literal word `merge` before it actually merges) → asking about board and
 CLAUDE.md updates → cleanup.
 
+## Optional: main-branch edit guard hook
+
+[`hooks/block-main-branch-edits.sh`](hooks/block-main-branch-edits.sh) is a
+separate, optional add-on — a Claude Code `PreToolUse` hook that refuses
+Write/Edit calls while checked out on `main`/`master` in a real dev project
+(detected by the presence of `package.json`, `pyproject.toml`, `go.mod`,
+`Cargo.toml`, `pom.xml`, `build.gradle`(`.kts`), `Gemfile`, or
+`composer.json` at the repo root). It exists to stop the failure mode
+where a new task starts without first creating a worktree/branch and ends
+up editing the shared main branch directly, affecting other parallel
+sessions. It is global config, not part of the skill itself, so it isn't
+picked up automatically just by cloning this repo into `~/.claude/skills/`.
+
+**Requires:** `bash` and `node` on PATH (used to parse the hook's JSON
+stdin/output without depending on `jq`).
+
+### Install on a new device
+
+1. Clone this repo first per the steps above (or if already cloned, `git
+   pull` to get the latest `hooks/` script).
+
+2. Copy (or symlink) the script into `~/.claude/hooks/`:
+   ```bash
+   mkdir -p ~/.claude/hooks
+   cp ~/.claude/skills/shipping-a-task/hooks/block-main-branch-edits.sh ~/.claude/hooks/
+   chmod +x ~/.claude/hooks/block-main-branch-edits.sh
+   ```
+
+3. Add the hook to `~/.claude/settings.json` (merge into the existing
+   `hooks` key if one is already present — don't overwrite unrelated
+   hooks/settings):
+   ```json
+   {
+     "hooks": {
+       "PreToolUse": [
+         {
+           "matcher": "Write|Edit",
+           "hooks": [
+             {
+               "type": "command",
+               "command": "bash \"$HOME/.claude/hooks/block-main-branch-edits.sh\"",
+               "shell": "bash",
+               "statusMessage": "Checking branch isn't main/master..."
+             }
+           ]
+         }
+       ]
+     }
+   }
+   ```
+
+4. Reload hooks in any already-running Claude Code session by opening
+   `/hooks` once, or just start a new session — new sessions pick up the
+   config automatically.
+
+### What it does and doesn't cover
+
+- Blocks: Claude's `Write`/`Edit` tools targeting a file inside a real dev
+  project (has one of the marker files above) while `main`/`master` is
+  checked out.
+- Does **not** block: `Bash`-tool invocations that write files or run
+  `git commit` directly, or projects without one of the recognized marker
+  files (e.g. this `shipping-a-task` repo itself, which is plain
+  Markdown/shell and has none of them — you can still edit it on `master`).
+
 ## Updating the skill later
 
 Since this is a normal git repo, changes made on any device sync the
