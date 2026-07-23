@@ -71,7 +71,8 @@ skill，不在這個 repo 的控制範圍內，無法直接修改其文字。因
   - `restore`
   - `clean`（僅當指令含 `-f`/`--force`/`-fd`/`-fx` 等強制旗標；`git clean`
     沒有強制旗標時 git 本身就會拒絕執行，風險低，不擋）
-  - `push`
+  - `push`、`pull`（`pull` 等同 fetch+merge，一樣會移動 HEAD／改動工作目錄，
+    跟 `push` 同等級對待）
   - `branch`（僅當含 `-D`/`--delete --force`；一般 `-d` 保留允許，見下）
 - **明確允許（allowlist，因為是這個 skill 流程本身需要在 main 根目錄執行的
   合法操作）**：
@@ -239,6 +240,7 @@ allow/deny 結果，至少涵蓋：
 | 7 | 非 dev-marker 專案（例如 task-autopilot 這個 repo 自己）、master 分支、`Bash` 執行 `git commit` | allow（既有例外迴歸測試） |
 | 8 | dev-marker 專案、main 分支、`Bash` 執行 `git branch -d merged-branch` | allow |
 | 9 | dev-marker 專案、main 分支、`Bash` 執行 `git branch -D unmerged-branch` | deny |
+| 10 | dev-marker 專案、main 分支、`Bash` 執行 `git pull origin main` | deny |
 
 ### SKILL.md 新增文字（行為引導，照 writing-skills RED→GREEN 驗證）
 
