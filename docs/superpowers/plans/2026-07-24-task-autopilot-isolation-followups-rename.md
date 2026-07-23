@@ -493,12 +493,15 @@ git branch --show-current
 
 If the branch shown is `main` or `master`, the work was done directly on
 the shared trunk instead of an isolated worktree — stop here. Do not
-self-check or ship from `main` directly. Tell the user plainly what
-happened and that the changes need to move to a proper worktree/branch
-first (see superpowers:using-git-worktrees) before this skill can
-continue. This is a backstop for cases the main-branch-edit-guard hook (if
-installed) did not catch — see `hooks/block-main-branch-edits.sh` in this
-skill's own repo.
+self-check or ship from `main` directly, and **do not attempt to fix this
+yourself** — do not run `git reset --hard`, `git branch` + checkout
+surgery, or any other command that rewrites `main`'s history or moves
+commits off it, even as a "helpful" first step before asking. Tell the
+user plainly what happened and that the changes need to move to a proper
+worktree/branch first (see superpowers:using-git-worktrees) before this
+skill can continue — let the user decide how that happens. This is a
+backstop for cases the main-branch-edit-guard hook (if installed) did not
+catch — see `hooks/block-main-branch-edits.sh` in this skill's own repo.
 
 Once confirmed to be on a task branch/worktree, verify the work is sound:
 ```
@@ -679,6 +682,10 @@ Append immediately after it (still inside `## Common Mistakes`):
 - Problem: file edits and Bash git commands both leak into other parallel sessions sharing the same `.git`
 - Fix: Step 1 now verifies the branch itself before doing anything else — treat a `main`/`master` result as a hard stop, not a warning to note and move past
 
+**Self-remediating with `git reset --hard` or branch surgery when work is found directly on `main`, then telling the user afterward**
+- Problem: rewrites shared trunk history unilaterally before the user had any chance to weigh in — this is worse than doing nothing, not better, even though it "fixes" the isolation problem
+- Fix: stop and describe the situation to the user first; let them decide how the work moves to a worktree/branch, don't pre-empt that decision with your own git surgery
+
 **Mentioning a deferred item in conversation without recording it anywhere**
 - Problem: once the conversation is compacted or the worktree is cleaned up, the item is gone with no trace
 - Fix: record it in an issue the moment it's agreed to be deferred, not at the end of the session
@@ -707,6 +714,7 @@ Replace with:
 - About to move on from a "let's do this later" moment without creating or updating an issue first
 - About to open a brand-new issue for something that would fit as one checklist line on an existing or backlog issue
 - About to run `git worktree remove` in Step 8 without having swept the conversation for uncaptured deferred items
+- About to run `git reset --hard`, branch/checkout surgery, or any other "cleanup" command against `main`/`master` to fix a provenance problem you just found, before the user has said how they want it handled
 
 **All of these mean: stop, ask the user, do not proceed on assumption.**
 ```
