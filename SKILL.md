@@ -1,15 +1,15 @@
 ---
-name: shipping-a-task
+name: task-autopilot
 description: Use when implementation is complete and passing self-checks, and a finished task needs to go through manual testing, PR creation, merge, and cleanup all the way to done - especially when the user wants the merge itself handled (not just the PR), including situations with merge conflicts or a GitHub Projects board/CLAUDE.md to update afterward; also use mid-task, whenever a discussion identifies follow-up work to defer rather than do now, so it gets captured before it's lost
 ---
 
-# Shipping a Task
+# Task Autopilot
 
 ## Overview
 
-Carries a single completed task from self-check through merge and cleanup, so you don't have to re-explain the same handoff steps every time you finish work in a worktree. Fills the gap after PR creation: this skill also drives the actual merge (including conflict handling) and the post-merge housekeeping (board status, CLAUDE.md), which superpowers:finishing-a-development-branch stops short of.
+Runs a task's full lifecycle on autopilot once implementation is underway: keeps work isolated to its worktree, captures any deferred follow-up work as GitHub issues as soon as it comes up, then carries the task from self-check through manual testing, PR, merge, and cleanup — so you don't have to re-explain the same handoff steps every time you finish work in a worktree, and nothing discussed along the way gets silently dropped. Fills the gap after PR creation: this skill also drives the actual merge (including conflict handling) and the post-merge housekeeping (board status, CLAUDE.md), which superpowers:finishing-a-development-branch stops short of.
 
-**Announce at start:** "I'm using the shipping-a-task skill to ship this task."
+**Announce at start:** "I'm using the task-autopilot skill to ship this task" (or, when only capturing a deferred item mid-task: "I'm using the task-autopilot skill to record this as a follow-up before continuing").
 
 **REQUIRED BACKGROUND:** This skill assumes the task is being worked in a worktree created via superpowers:using-git-worktrees. Step 1 below verifies this rather than just assuming it.
 
