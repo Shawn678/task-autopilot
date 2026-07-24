@@ -17,7 +17,27 @@ Carries a single completed task from self-check through merge and cleanup, so yo
 
 ### Step 1: Self-Check
 
-Before presenting anything to the user, verify the work is sound:
+**Before anything else, confirm this task actually happened in a worktree,
+not directly on `main`/`master`:**
+
+```bash
+git rev-parse --show-toplevel
+git branch --show-current
+```
+
+If the branch shown is `main` or `master`, the work was done directly on
+the shared trunk instead of an isolated worktree — stop here. Do not
+self-check or ship from `main` directly, and **do not attempt to fix this
+yourself** — do not run `git reset --hard`, `git branch` + checkout
+surgery, or any other command that rewrites `main`'s history or moves
+commits off it, even as a "helpful" first step before asking. Tell the
+user plainly what happened and that the changes need to move to a proper
+worktree/branch first (see superpowers:using-git-worktrees) before this
+skill can continue — let the user decide how that happens. This is a
+backstop for cases the main-branch-edit-guard hook (if installed) did not
+catch — see `hooks/block-main-branch-edits.sh` in this skill's own repo.
+
+Once confirmed to be on a task branch/worktree, verify the work is sound:
 
 ```bash
 # Run the project's lint and test commands (check package.json/README/
