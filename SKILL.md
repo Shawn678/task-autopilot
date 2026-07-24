@@ -1,6 +1,6 @@
 ---
 name: shipping-a-task
-description: Use when implementation is complete and passing self-checks, and a finished task needs to go through manual testing, PR creation, merge, and cleanup all the way to done - especially when the user wants the merge itself handled (not just the PR), including situations with merge conflicts or a GitHub Projects board/CLAUDE.md to update afterward
+description: Use when implementation is complete and passing self-checks, and a finished task needs to go through manual testing, PR creation, merge, and cleanup all the way to done - especially when the user wants the merge itself handled (not just the PR), including situations with merge conflicts or a GitHub Projects board/CLAUDE.md to update afterward; also use mid-task, whenever a discussion identifies follow-up work to defer rather than do now, so it gets captured before it's lost
 ---
 
 # Shipping a Task
@@ -11,7 +11,53 @@ Carries a single completed task from self-check through merge and cleanup, so yo
 
 **Announce at start:** "I'm using the shipping-a-task skill to ship this task."
 
-**REQUIRED BACKGROUND:** This skill assumes the task is being worked in a worktree created via superpowers:using-git-worktrees.
+**REQUIRED BACKGROUND:** This skill assumes the task is being worked in a worktree created via superpowers:using-git-worktrees. Step 1 below verifies this rather than just assuming it.
+
+## Deferred Work → Issues
+
+This applies throughout the whole task, not just during the steps below:
+the moment a discussion with the user settles on "not doing this now,
+doing it later," capture it immediately — do not wait until Step 8 to
+remember it. Conversations get compacted; things mentioned once and never
+written down get lost.
+
+**First time this comes up in a session**, detect whether the project
+actually uses GitHub Issues:
+
+```bash
+gh issue list --limit 1
+```
+
+If this comes back empty and there is no other sign issues are in use,
+this project does not use GitHub Issues — skip this whole mechanism
+silently for the rest of the session, the same way Steps 6/7 skip an
+unused board/CLAUDE.md convention. Do not ask the user to start using
+issues; do not re-check this more than once per session.
+
+If issues are in use, apply this decision tree to every deferred item,
+immediately when it comes up:
+
+1. **Is there a clearly relevant open issue already?** (same feature/bug
+   area) — add the item there as a comment or checklist line. Do not open
+   a new one.
+2. **No matching issue, but is this substantial** — needs its own
+   acceptance criteria, will take more than a quick follow-up to resolve,
+   or involves an independent design decision? — open a new issue for it.
+3. **Neither of the above** (a one-line note, a small fix, no clear owner
+   issue) — add it as a new checklist line on the shared
+   "Follow-ups / Backlog" issue. Find it by searching open issue titles
+   for "Follow-ups" or "Backlog" first; only create it (with that title)
+   if no match exists. Do not rely on a label for this search — a missing
+   label would make the search silently fail.
+
+After recording the item, report the issue number/URL to the user in one
+line and continue the original work — this is not a detour that needs its
+own task switch.
+
+**Before Step 8 (cleanup) runs**, do one more pass: review the whole
+conversation for anything that was identified as deferred, and confirm
+each one actually landed in an issue. This catches anything raised before
+this skill was invoked, when real-time capture would not have applied yet.
 
 ## The Process
 
@@ -211,6 +257,11 @@ same session, don't ask again unless they indicate the preference changed.
 
 ### Step 8: Clean Up
 
+**Before removing anything**, do the deferred-work sweep described in
+"Deferred Work → Issues" above — confirm every item raised during this
+task that will not be done now has landed in an issue. Once the worktree
+is gone, the conversation's working context goes with it.
+
 **REQUIRED SUB-SKILL:** Reuse the worktree cleanup logic from
 superpowers:finishing-a-development-branch (Step 6 of that skill):
 provenance-check the worktree path, `cd` to the main repo root before
@@ -224,14 +275,15 @@ a harness-owned workspace.
 
 | Step | Action | Blocking gate |
 |---|---|---|
-| 1 | Self-check (lint/test/review) | Must pass before Step 2 |
+| 1 | Verify work is in a worktree (not main/master), then self-check (lint/test/review) | Must pass before Step 2; stop if work happened on main |
 | 2 | Hand off for manual test | Wait for user response |
 | 3 | User confirms, or reports a problem to fix (judge re-check scope yourself) | Problem → fix, judge whether to redo 1/2 |
 | 4 | Open PR — only if one doesn't already exist for this branch | One PR per task, ever |
 | 5 | Merge (method determined from project; conflicts judged mechanical vs. logic-divergence) | Literal `merge` keyword required; logic divergence always asks |
 | 6 | Board update | Only if project uses a board; ask once per session |
 | 7 | CLAUDE.md update | Only if project has a tracking section; ask once per session |
-| 8 | Cleanup | Provenance check first |
+| 8 | Cleanup | Deferred-work sweep first, then provenance check |
+| ongoing | Deferred work → issue (real-time, whenever raised) | Only if project uses GitHub Issues; detect once per session |
 
 ## Common Mistakes
 
@@ -267,6 +319,22 @@ a harness-owned workspace.
 - Problem: destroys a harness-managed or user-managed workspace
 - Fix: provenance-check before removal (see finishing-a-development-branch)
 
+**Continuing to work directly on `main`/`master` because the hook didn't catch it**
+- Problem: file edits and Bash git commands both leak into other parallel sessions sharing the same `.git`
+- Fix: Step 1 now verifies the branch itself before doing anything else — treat a `main`/`master` result as a hard stop, not a warning to note and move past
+
+**Self-remediating with `git reset --hard` or branch surgery when work is found directly on `main`, then telling the user afterward**
+- Problem: rewrites shared trunk history unilaterally before the user had any chance to weigh in — this is worse than doing nothing, not better, even though it "fixes" the isolation problem
+- Fix: stop and describe the situation to the user first; let them decide how the work moves to a worktree/branch, don't pre-empt that decision with your own git surgery
+
+**Mentioning a deferred item in conversation without recording it anywhere**
+- Problem: once the conversation is compacted or the worktree is cleaned up, the item is gone with no trace
+- Fix: record it in an issue the moment it's agreed to be deferred, not at the end of the session
+
+**Opening a new issue for a one-line, trivial deferred item**
+- Problem: clutters the issue tracker with noise, defeats the purpose of tracking follow-ups
+- Fix: route anything small/without a clear owner into the shared Follow-ups/Backlog issue instead
+
 ## Red Flags - STOP and Ask
 
 - About to run `gh pr merge` without the user having typed the literal word `merge` at this point in the conversation
@@ -277,5 +345,10 @@ a harness-owned workspace.
 - About to ask the board/CLAUDE.md question when neither is actually in use on this project
 - About to re-ask a board/CLAUDE.md question the user already answered earlier this session
 - About to remove a worktree you didn't verify the provenance of
+- About to run a Bash git command (`commit`, `stash`, `merge`, etc.) directly against `main`/`master` because "it's just this once"
+- About to run `git reset --hard`, branch/checkout surgery, or any other "cleanup" command against `main`/`master` to fix a provenance problem you just found, before the user has said how they want it handled
+- About to move on from a "let's do this later" moment without creating or updating an issue first
+- About to open a brand-new issue for something that would fit as one checklist line on an existing or backlog issue
+- About to run `git worktree remove` in Step 8 without having swept the conversation for uncaptured deferred items
 
 **All of these mean: stop, ask the user, do not proceed on assumption.**
