@@ -217,3 +217,16 @@ PR #42，並明確引用「一個任務一個 PR」規則作為不重開的理�
   worktree、直接在 main 上改動、影響其他平行 session 的情況）。這件事涉及
   不同的實作機制（settings.json 的 hooks 設定），範圍與測試方法都跟這次的
   SKILL.md 文字修訂不同，留待下一輪單獨處理，不在這次修訂範圍內。
+  （**2026-07-24 更新：** 此項已在下方「更名為 task-autopilot」所連結的
+  2026-07-24 設計文件中處理——`hooks/block-main-branch-edits.sh` 擴充為同時
+  攔截 `Bash` 工具的 mutating git 指令，不再只擋 `Write`/`Edit`。）
+
+## 2026-07-24 更名為 task-autopilot
+
+因應這次隔離強化／代辦事項追蹤／整體定位調整（完整設計見
+`docs/superpowers/specs/2026-07-24-isolation-followups-reposition-design.md`），
+這個 skill 從 `shipping-a-task` 更名為 `task-autopilot`，反映其涵蓋整個任務
+生命週期（隔離安全、代辦事項不遺漏、收尾出貨）而非只有出貨階段的實際定位。
+GitHub repo 與各裝置上 `~/.claude/skills/` 底下的資料夾路徑也同步更名，細節
+見 `README.md` 的「Migrating from shipping-a-task」段落。本文件其餘內容維持
+原始歷史記錄，不回溯修改。
