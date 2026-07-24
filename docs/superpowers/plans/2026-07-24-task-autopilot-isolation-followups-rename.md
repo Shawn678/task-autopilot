@@ -1099,6 +1099,29 @@ Replace with:
   invocation time, not any `cd` inside the command string itself).
 ```
 
+- [ ] **Step 7b: Update the settings.json matcher to include `Bash`**
+
+Find, in the "Add the hook to `~/.claude/settings.json`" step:
+
+```json
+        {
+          "matcher": "Write|Edit",
+```
+
+Replace with:
+
+```json
+        {
+          "matcher": "Write|Edit|Bash",
+```
+
+(Discovered during Task 2 execution: the hook's JS logic supports classifying
+`Bash` commands, but the hook only actually fires for tool calls matching
+this string — without adding `Bash` here, mutating git commands never reach
+the hook at all. Already applied to this machine's live
+`~/.claude/settings.json` directly during Task 2; this step keeps the
+README's install instructions correct for other devices/fresh installs.)
+
 - [ ] **Step 8: Update the `chmod`/copy step to include the new `.js` file**
 
 Find:
