@@ -11,7 +11,8 @@ const MUTATING_SUBCOMMANDS = [
 ];
 
 const DEV_PROJECT_MARKERS = [
-  'package.json', 'pyproject.toml', 'go.mod', 'Cargo.toml', 'pom.xml',
+  'package.json', 'pyproject.toml', 'requirements.txt', 'setup.py',
+  'Pipfile', 'environment.yml', 'go.mod', 'Cargo.toml', 'pom.xml',
   'build.gradle', 'build.gradle.kts', 'Gemfile', 'composer.json'
 ];
 

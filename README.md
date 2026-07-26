@@ -171,7 +171,8 @@ items that still need to land in an issue → cleanup.
 [`hooks/block-main-branch-edits.sh`](hooks/block-main-branch-edits.sh) is a
 separate, optional add-on — a Claude Code `PreToolUse` hook that refuses
 Write/Edit calls while checked out on `main`/`master` in a real dev project
-(detected by the presence of `package.json`, `pyproject.toml`, `go.mod`,
+(detected by the presence of `package.json`, `pyproject.toml`,
+`requirements.txt`, `setup.py`, `Pipfile`, `environment.yml`, `go.mod`,
 `Cargo.toml`, `pom.xml`, `build.gradle`(`.kts`), `Gemfile`, or
 `composer.json` at the repo root). It exists to stop the failure mode
 where a new task starts without first creating a worktree/branch and ends
